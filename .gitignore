@@ -1,0 +1,4 @@
+__pycache__/
+watchdog_script.py
+.idea/
+.venv
