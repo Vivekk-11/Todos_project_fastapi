@@ -6,6 +6,7 @@ from models import Users
 from starlette import status
 from passlib.context import CryptContext
 from database import SessionLocal
+from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter()
 
@@ -23,6 +24,16 @@ def get_db():
 dependency_injection = Annotated[Session, Depends(get_db)]
 
 
+def authenticate_user(username: str, password: str, db):
+    user = db.query(Users).filter(Users.username == username).first()
+    print("USER")
+    if not user:
+        return False
+    if not bcrypt_context.verify(password, user.hashed_password):
+        return False
+    return True
+
+
 class CreateUserRequest(BaseModel):
     username: str
     first_name: str
@@ -38,6 +49,13 @@ async def create_user(db: dependency_injection, create_user_request: CreateUserR
                               first_name=create_user_request.first_name, last_name=create_user_request.last_name,
                               hashed_password=bcrypt_context.hash(create_user_request.password),
                               role=create_user_request.role)
-
     db.add(create_user_model)
     db.commit()
+
+
+@router.post("/token")
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: dependency_injection):
+    is_user = authenticate_user(form_data.username, form_data.password, db)
+    if not is_user:
+        return "FAILED AUTHENTICATION"
+    return "SUCCESSFUL AUTHENTICATION"
