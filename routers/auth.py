@@ -10,10 +10,10 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from datetime import timedelta, datetime, timezone
 from jose import jwt, JWTError
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth_bearer = OAuth2PasswordBearer(tokenUrl="token")
+oauth_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 SECRET_KEY = "3e7f0f7ebdc2cfdd78d7b2e76013ed3627eb5b33521221ef420c56266c2b60dd"
 ALGORITHM = "HS256"
@@ -86,6 +86,6 @@ async def create_user(db: dependency_injection, create_user_request: CreateUserR
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: dependency_injection):
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
-        return "FAILED AUTHENTICATION"
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate the user.")
     token = create_access_token(username=user.username, user_id=user.id, expires_delta=timedelta(minutes=20))
     return {"access_token": token, "token_type": "bearer"}
